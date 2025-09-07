@@ -11,9 +11,10 @@ import { Code } from './codes/code.entity';
       port: 5432,
       username: 'postgres',
       password: 'password123',
-      database: 'medcodes',
+      database: 'medcodes', // make sure this DB exists
       entities: [Code],
-      synchronize: true, // auto-create tables
+      autoLoadEntities: true, // loads entities automatically
+      synchronize: true, // use only for dev, auto creates tables
     }),
     CodesModule,
   ],
