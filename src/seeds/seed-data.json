@@ -1,0 +1,23 @@
+[
+  {
+    "id": "9360f6b1-602f-4c1c-adf7-a3b9babaed6b",
+    "system": "NAMASTE",
+    "code": "AYU001",
+    "name": "Ama Dosha",
+    "description": "Traditional Ayurveda disorder"
+  },
+  {
+    "id": "c2f857d0-0e53-4af4-aa9f-3440187202dc",
+    "system": "ICD11-TM2",
+    "code": "XM1234",
+    "name": "Qi Stagnation",
+    "description": "Traditional Medicine diagnosis"
+  },
+  {
+    "id": "e1d5a37a-4a01-4bba-b2ff-7d98f4691b7f",
+    "system": "ICD11-Biomed",
+    "code": "MG30",
+    "name": "Type 2 Diabetes",
+    "description": "Biomedical diagnosis"
+  }
+]

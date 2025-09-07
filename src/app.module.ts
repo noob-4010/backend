@@ -1,18 +1,33 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CodesModule } from './codes/codes.module';
 import { Code } from './codes/code.entity';
+import { SeedModule } from './seeds/seed.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      url: 'postgresql://backend_db_kz9t_user:BWp4VnUerAcXNiixNKEYo4HRXXiPz8iX@dpg-d2urp9ogjchc73akqktg-a/backend_db_kz9t', // internal URL
-      entities: [Code],
-      synchronize: true, // auto-create tables
-      ssl: false,        // internal URL does NOT require SSL
+    // Load environment variables globally
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.local',
     }),
+
+    // TypeORM configuration using environment variables
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        url: config.get<string>('DB_URL'),
+        entities: [Code],
+        synchronize: true, // Auto-create tables (dev only)
+        ssl: config.get<string>('DB_URL')?.includes('render') ? true : false, // SSL for Render Postgres only
+      }),
+    }),
+
     CodesModule,
+    SeedModule,
   ],
   controllers: [],
   providers: [],
