@@ -7,14 +7,10 @@ import { Code } from './codes/code.entity';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'dpg-d2urp9ogjchc73akqktg-a', // Render internal host
-      port: 5432,
-      username: 'backend_db_kz9t_user',   // Render username
-      password: 'BWp4VnUerAcXNiixNKEYo4HRXXiPz8iX', // Render password
-      database: 'backend_db_kz9t',        // Render DB name
+      url: 'postgresql://backend_db_kz9t_user:BWp4VnUerAcXNiixNKEYo4HRXXiPz8iX@dpg-d2urp9ogjchc73akqktg-a/backend_db_kz9t', // internal URL
       entities: [Code],
-      synchronize: true, // auto create tables
-      ssl: false,        // internal URL does NOT need SSL
+      synchronize: true, // auto-create tables
+      ssl: false,        // internal URL does NOT require SSL
     }),
     CodesModule,
   ],
