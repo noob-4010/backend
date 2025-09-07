@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CodesModule } from './codes/codes.module';
+import { Code } from './codes/code.entity';
 
 @Module({
   imports: [
@@ -11,8 +12,8 @@ import { CodesModule } from './codes/codes.module';
       username: 'postgres',
       password: 'password123',
       database: 'medcodes',
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
+      entities: [Code],
+      synchronize: true, // auto-create tables
     }),
     CodesModule,
   ],

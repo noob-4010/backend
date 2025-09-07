@@ -7,7 +7,7 @@ import { Code } from './code.entity';
 export class CodesService {
   constructor(
     @InjectRepository(Code)
-    private readonly codesRepo: Repository<Code>,
+    private codesRepo: Repository<Code>,
   ) {}
 
   findAll(): Promise<Code[]> {
