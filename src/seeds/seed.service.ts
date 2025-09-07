@@ -22,16 +22,17 @@ export class SeedService implements OnModuleInit {
         return;
       }
 
-      const seedPath = path.join(__dirname, 'seed-data.json'); // matches src/seeds/seed-data.json
+      // go 2 dirs up from dist/seeds/SeedService.js → seeds/seed-data.json
+      const seedPath = path.join(process.cwd(), 'seeds', 'seed-data.json');
+
       if (!fs.existsSync(seedPath)) {
-        this.logger.warn('No seed-data.json found — skipping seed.');
+        this.logger.warn(`No seed-data.json found at ${seedPath} — skipping seed.`);
         return;
       }
 
       const raw = fs.readFileSync(seedPath, 'utf8');
       const codes: Partial<Code>[] = JSON.parse(raw);
 
-      // Use a transaction to avoid race conditions on first deploy with multiple instances
       await this.dataSource.transaction(async (manager) => {
         const repo = manager.getRepository(Code);
         const existing = await repo.count();

@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+// src/app.controller.ts
+import { Controller, Get } from '@nestjs/common';
 
-@Injectable()
-export class AppService {
-  getHello(): string {
-    return 'Hello World!';
+@Controller()
+export class AppController {
+  @Get()
+  getRoot(): string {
+    return 'Server is running 🚀';
   }
 }

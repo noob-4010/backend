@@ -4,16 +4,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { CodesModule } from './codes/codes.module';
 import { Code } from './codes/code.entity';
 import { SeedModule } from './seeds/seed.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
-    // Load environment variables globally
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.local',
+      envFilePath:
+        process.env.NODE_ENV === 'production' ? '.env.production' : '.env.local',
     }),
 
-    // TypeORM configuration using environment variables
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -21,15 +21,18 @@ import { SeedModule } from './seeds/seed.module';
         type: 'postgres',
         url: config.get<string>('DB_URL'),
         entities: [Code],
-        synchronize: true, // Auto-create tables (dev only)
-        ssl: config.get<string>('DB_URL')?.includes('render') ? true : false, // SSL for Render Postgres only
+        synchronize: true,
+        ssl: config.get<string>('DB_URL')?.includes('render') ? true : false,
       }),
     }),
 
     CodesModule,
     SeedModule,
+
+    // Makes repository injectable in AppController
+    TypeOrmModule.forFeature([Code]),
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [],
 })
 export class AppModule {}

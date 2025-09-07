@@ -1,12 +1,25 @@
+// src/app.controller.ts
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Code } from './codes/code.entity';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService) {}
+  constructor(
+    @InjectRepository(Code)
+    private readonly codeRepo: Repository<Code>,
+  ) {}
 
+  // Root route
   @Get()
-  getHello(): string {
-    return this.appService.getHello();
+  getRoot() {
+    return { message: 'Server is running 🚀' };
+  }
+
+  // /api/codes route
+  @Get('api/codes')
+  async getCodes() {
+    return this.codeRepo.find();
   }
 }
