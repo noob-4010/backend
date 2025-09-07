@@ -7,14 +7,16 @@ import { Code } from './codes/code.entity';
   imports: [
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
+      host: 'dpg-d2urp9ogjchc73akqktg-a', // from Render
       port: 5432,
-      username: 'postgres',
-      password: 'password123',
-      database: 'medcodes', // make sure this DB exists
+      username: 'backend_db_kz9t_user',       // from Render
+      password: 'backend_db_kz9t_user',   // from Render
+      database: 'backend_db_kz9t',         // from Render
       entities: [Code],
-      autoLoadEntities: true, // loads entities automatically
-      synchronize: true, // use only for dev, auto creates tables
+      synchronize: true,
+      ssl: {
+        rejectUnauthorized: false, // required for Render PostgreSQL
+      },
     }),
     CodesModule,
   ],
