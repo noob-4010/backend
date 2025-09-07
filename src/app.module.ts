@@ -1,3 +1,4 @@
+// src/app.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -13,7 +14,6 @@ import { AppController } from './app.controller';
       envFilePath:
         process.env.NODE_ENV === 'production' ? '.env.production' : '.env.local',
     }),
-
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -25,12 +25,9 @@ import { AppController } from './app.controller';
         ssl: config.get<string>('DB_URL')?.includes('render') ? true : false,
       }),
     }),
-
     CodesModule,
     SeedModule,
-
-    // Makes repository injectable in AppController
-    TypeOrmModule.forFeature([Code]),
+    TypeOrmModule.forFeature([Code]), // Important for AppController injection
   ],
   controllers: [AppController],
   providers: [],
