@@ -1,3 +1,4 @@
+// src/seeds/seed.service.ts
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -16,14 +17,13 @@ export class SeedService implements OnModuleInit {
 
   async onModuleInit() {
     try {
-      const count = await this.codeRepo.count();
-      if (count > 0) {
-        this.logger.log('Seed skipped — codes table already has data.');
-        return;
-      }
-
-      // Always load JSON from src/seeds (works both dev + dist)
-      const seedPath = path.resolve(process.cwd(), 'src', 'seeds', 'seed-data.json');
+      // Always load JSON from src/seeds (dev) or dist/seeds (prod)
+      const seedPath = path.resolve(
+        process.cwd(),
+        fs.existsSync(path.join(process.cwd(), 'dist'))
+          ? 'dist/seeds/seed-data.json'
+          : 'src/seeds/seed-data.json',
+      );
 
       if (!fs.existsSync(seedPath)) {
         this.logger.warn(`No seed-data.json found at ${seedPath} — skipping seed.`);
@@ -35,11 +35,7 @@ export class SeedService implements OnModuleInit {
 
       await this.dataSource.transaction(async (manager) => {
         const repo = manager.getRepository(Code);
-        const existing = await repo.count();
-        if (existing > 0) {
-          this.logger.log('Seed skipped inside transaction — data already present.');
-          return;
-        }
+        await repo.clear(); // Truncate table before seeding
         await repo.save(codes);
       });
 

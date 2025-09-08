@@ -22,12 +22,14 @@ import { AppController } from './app.controller';
         url: config.get<string>('DB_URL'),
         entities: [Code],
         synchronize: true,
-        ssl: config.get<string>('DB_URL')?.includes('render') ? true : false,
+        ssl: config.get<string>('DB_URL')?.includes('render')
+          ? { rejectUnauthorized: false }
+          : false,
       }),
     }),
     CodesModule,
     SeedModule,
-    TypeOrmModule.forFeature([Code]), // Important for AppController injection
+    TypeOrmModule.forFeature([Code]), // For AppController injection
   ],
   controllers: [AppController],
   providers: [],
