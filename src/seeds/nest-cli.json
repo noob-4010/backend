@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "assets": [
+      { "include": "seeds/seed-data.json", "outDir": "dist" }
+    ],
+    "watchAssets": true
+  }
+}

@@ -22,8 +22,8 @@ export class SeedService implements OnModuleInit {
         return;
       }
 
-      // go 2 dirs up from dist/seeds/SeedService.js → seeds/seed-data.json
-      const seedPath = path.join(process.cwd(), 'seeds', 'seed-data.json');
+      // ✅ JSON copied to dist/seeds/seed-data.json via nest-cli.json
+      const seedPath = path.join(process.cwd(), 'dist', 'seeds', 'seed-data.json');
 
       if (!fs.existsSync(seedPath)) {
         this.logger.warn(`No seed-data.json found at ${seedPath} — skipping seed.`);
