@@ -5,36 +5,44 @@ import { Repository, DataSource } from 'typeorm';
 import { Code } from '../codes/code.entity';
 import * as fs from 'fs';
 import * as path from 'path';
+import csvParser from 'csv-parser'; // ✅ fixed import
 
 @Injectable()
 export class SeedService implements OnModuleInit {
   private readonly logger = new Logger(SeedService.name);
 
   constructor(
-    @InjectRepository(Code) private readonly codeRepo: Repository<Code>,
+    @InjectRepository(Code)
+    private readonly codeRepo: Repository<Code>,
     private readonly dataSource: DataSource,
   ) {}
 
   async onModuleInit() {
     try {
-      // Always load JSON from backend root
-      const seedPath = path.resolve(process.cwd(), 'seed-data.json');
+      const csvPath = path.resolve(process.cwd(), 'src/seeds/namaste.csv');
 
-      if (!fs.existsSync(seedPath)) {
-        this.logger.warn(`No seed-data.json found at ${seedPath} — skipping seed.`);
+      if (!fs.existsSync(csvPath)) {
+        this.logger.warn(`No CSV found at ${csvPath} — skipping seed.`);
         return;
       }
 
-      const raw = fs.readFileSync(seedPath, 'utf8');
-      const codes: Partial<Code>[] = JSON.parse(raw);
+      const records: Partial<Code>[] = [];
+
+      await new Promise<void>((resolve, reject) => {
+        fs.createReadStream(csvPath)
+          .pipe(csvParser()) // ✅ now callable
+          .on('data', (row) => records.push(row))
+          .on('end', () => resolve())
+          .on('error', (err) => reject(err));
+      });
 
       await this.dataSource.transaction(async (manager) => {
         const repo = manager.getRepository(Code);
-        await repo.clear(); // Truncate table before seeding
-        await repo.save(codes);
+        await repo.clear(); // truncate table before seeding
+        await repo.save(records);
       });
 
-      this.logger.log(`Seed complete — inserted ${codes.length} codes.`);
+      this.logger.log(`CSV Seed complete — inserted ${records.length} codes.`);
     } catch (err) {
       this.logger.error('Seeding failed', err);
     }

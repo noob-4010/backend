@@ -15,5 +15,11 @@ export class Code {
   name: string;
 
   @Column({ nullable: true })
-  description: string;
+  description?: string;
+
+  @Column({ nullable: true })
+  tm2Code?: string;
+
+  @Column({ nullable: true })
+  biomedCode?: string;
 }
