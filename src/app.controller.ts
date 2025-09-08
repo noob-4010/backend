@@ -17,7 +17,7 @@ export class AppController {
     return { message: 'Server is running 🚀' };
   }
 
-  // /api/codes route
+  // Codes route
   @Get('api/codes')
   async getCodes() {
     return this.codeRepo.find();
