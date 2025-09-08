@@ -17,7 +17,7 @@ export class SeedService implements OnModuleInit {
 
   async onModuleInit() {
     try {
-      // Always load JSON from backend root
+      // Always read from project root
       const seedPath = path.resolve(process.cwd(), 'seed-data.json');
 
       if (!fs.existsSync(seedPath)) {
@@ -30,11 +30,11 @@ export class SeedService implements OnModuleInit {
 
       await this.dataSource.transaction(async (manager) => {
         const repo = manager.getRepository(Code);
-        await repo.clear(); // Truncate table before seeding
+        await repo.clear();
         await repo.save(codes);
       });
 
-      this.logger.log(`Seed complete — inserted ${codes.length} codes.`);
+      this.logger.log(`✅ Seed complete — inserted ${codes.length} codes.`);
     } catch (err) {
       this.logger.error('Seeding failed', err);
     }
