@@ -17,13 +17,8 @@ export class SeedService implements OnModuleInit {
 
   async onModuleInit() {
     try {
-      // Always load JSON from src/seeds (dev) or dist/seeds (prod)
-      const seedPath = path.resolve(
-        process.cwd(),
-        fs.existsSync(path.join(process.cwd(), 'dist'))
-          ? 'dist/seeds/seed-data.json'
-          : 'src/seeds/seed-data.json',
-      );
+      // Always load JSON from backend root
+      const seedPath = path.resolve(process.cwd(), 'seed-data.json');
 
       if (!fs.existsSync(seedPath)) {
         this.logger.warn(`No seed-data.json found at ${seedPath} — skipping seed.`);
