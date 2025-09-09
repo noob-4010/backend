@@ -1,7 +1,4 @@
 // src/main.ts
-import * as crypto from 'crypto';   // ✅ Import Node's crypto
-(global as any).crypto = crypto;    // ✅ Patch crypto globally
-
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { RequestMethod } from '@nestjs/common';
@@ -9,13 +6,14 @@ import { RequestMethod } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // ✅ Enable CORS (allow requests from your frontend)
+  // ✅ Enable CORS for your frontend
   app.enableCors({
-    origin: '*',   // you can replace "*" with your frontend URL for more security
+    origin: 'http://127.0.0.1:5500', // allow your local frontend
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
   });
 
-  // ✅ Prefix all API routes, but keep root `/` unprefixed
+  // Prefix all API routes, but keep root `/` unprefixed
   app.setGlobalPrefix('api', {
     exclude: [{ path: '/', method: RequestMethod.GET }],
   });
