@@ -1,0 +1,11 @@
+system,code,name,description,tm2Code,biomedCode
+NAMASTE,AYU001,Vata Dosha,"Controls movement, circulation, and nervous system activity",TM2-001,BIO-001
+NAMASTE,AYU002,Pitta Dosha,"Regulates metabolism, digestion, and body heat",TM2-002,BIO-002
+NAMASTE,AYU003,Kapha Dosha,"Provides structure, lubrication, and stability",TM2-003,BIO-003
+NAMASTE,AYU004,Prana Vata,"Governs respiration and subtle life energy",TM2-004,BIO-004
+NAMASTE,AYU005,Udana Vata,"Controls speech, growth, and upward movement in the body",TM2-005,BIO-005
+NAMASTE,AYU006,Samana Vata,"Balances digestion and nutrient assimilation",TM2-006,BIO-006
+NAMASTE,AYU007,Apana Vata,"Manages excretion, reproductive system, and downward movements",TM2-007,BIO-007
+NAMASTE,AYU008,Sadhaka Pitta,"Influences intellect, memory, and emotional processing",TM2-008,BIO-008
+NAMASTE,AYU009,Alocaka Pitta,"Governs vision and perception",TM2-009,BIO-009
+NAMASTE,AYU010,Kledaka Kapha,"Responsible for lubrication of digestive tract and moisture balance",TM2-010,BIO-010
