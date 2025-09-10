@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    container_name: backend-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: medcodes
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-net
+
+  backend:
+    build:
+      context: .   # 👈 this is backend-1 folder (where Dockerfile + polyfill.js exist)
+      dockerfile: Dockerfile
+    container_name: backend-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: "postgresql://postgres:password123@db:5432/medcodes"
+      PORT: 3000
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    restart: on-failure
+    networks:
+      - backend-net
+
+volumes:
+  pgdata:
+
+networks:
+  backend-net:
+    driver: bridge
