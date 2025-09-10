@@ -3,10 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CodesService } from './codes.service';
 import { CodesController } from './codes.controller';
 import { Code } from './code.entity';
+import { ConceptMap } from './concept-map.entity';
+import { IcdApiService } from './icd-api.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Code])],
-  providers: [CodesService],
+  imports: [TypeOrmModule.forFeature([Code, ConceptMap])],
+  providers: [CodesService, IcdApiService],
   controllers: [CodesController],
 })
 export class CodesModule {}
