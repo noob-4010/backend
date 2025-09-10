@@ -1,0 +1,4 @@
+system,code,name,description,tm2Code,biomedCode
+ICD11,1A00,Cholera,"An infectious disease caused by Vibrio cholerae",TM2-101,BIO-101
+ICD11,1A01,Typhoid Fever,"A bacterial infection caused by Salmonella Typhi",TM2-102,BIO-102
+ICD11,1A02,Salmonella Infection,"Infection caused by Salmonella species",TM2-103,BIO-103

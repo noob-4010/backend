@@ -9,10 +9,14 @@ import { RequestMethod } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // ✅ Enable CORS (allow requests from your frontend)
+  // ✅ Enable CORS for both local dev & deployed frontend
   app.enableCors({
-    origin: '*',   // you can replace "*" with your frontend URL for more security
+    origin: [
+      'http://127.0.0.1:5500',   // local frontend
+      '*'                        // fallback (any domain, e.g. Render hosted frontend)
+    ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
   });
 
   // ✅ Prefix all API routes, but keep root `/` unprefixed

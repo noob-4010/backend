@@ -12,9 +12,7 @@ describe('AppController', () => {
       providers: [
         {
           provide: getRepositoryToken(Code),
-          useValue: {
-            find: jest.fn().mockResolvedValue([]),
-          },
+          useValue: { find: jest.fn().mockResolvedValue([]) },
         },
       ],
     }).compile();
@@ -23,7 +21,7 @@ describe('AppController', () => {
   });
 
   it('should return root message', () => {
-    expect(appController.getRoot()).toBe('Server is running 🚀');
+    expect(appController.getRoot()).toEqual({ message: 'Server is running 🚀' });
   });
 
   it('should return codes array', async () => {
