@@ -5,7 +5,7 @@ import { Repository, DataSource } from 'typeorm';
 import { Code } from '../codes/code.entity';
 import * as fs from 'fs';
 import * as path from 'path';
-import csvParser from 'csv-parser'; // ✅ fixed import
+import csvParser from 'csv-parser';
 
 @Injectable()
 export class SeedService implements OnModuleInit {
@@ -19,22 +19,29 @@ export class SeedService implements OnModuleInit {
 
   async onModuleInit() {
     try {
+      // ✅ Try CSV first, fallback to JSON if not found
       const csvPath = path.resolve(process.cwd(), 'src/seeds/namaste.csv');
+      const jsonPath = path.resolve(process.cwd(), 'seed-data.json');
 
-      if (!fs.existsSync(csvPath)) {
-        this.logger.warn(`No CSV found at ${csvPath} — skipping seed.`);
+      let records: Partial<Code>[] = [];
+
+      if (fs.existsSync(csvPath)) {
+        this.logger.log(`Found CSV at ${csvPath}, seeding...`);
+        await new Promise<void>((resolve, reject) => {
+          fs.createReadStream(csvPath)
+            .pipe(csvParser())
+            .on('data', (row) => records.push(row))
+            .on('end', () => resolve())
+            .on('error', (err) => reject(err));
+        });
+      } else if (fs.existsSync(jsonPath)) {
+        this.logger.log(`CSV not found, falling back to JSON: ${jsonPath}`);
+        const raw = fs.readFileSync(jsonPath, 'utf-8');
+        records = JSON.parse(raw);
+      } else {
+        this.logger.warn('⚠️ No seed file found — skipping seeding.');
         return;
       }
-
-      const records: Partial<Code>[] = [];
-
-      await new Promise<void>((resolve, reject) => {
-        fs.createReadStream(csvPath)
-          .pipe(csvParser()) // ✅ now callable
-          .on('data', (row) => records.push(row))
-          .on('end', () => resolve())
-          .on('error', (err) => reject(err));
-      });
 
       await this.dataSource.transaction(async (manager) => {
         const repo = manager.getRepository(Code);
@@ -42,9 +49,9 @@ export class SeedService implements OnModuleInit {
         await repo.save(records);
       });
 
-      this.logger.log(`CSV Seed complete — inserted ${records.length} codes.`);
+      this.logger.log(`✅ Seed complete — inserted ${records.length} codes.`);
     } catch (err) {
-      this.logger.error('Seeding failed', err);
+      this.logger.error('❌ Seeding failed', err);
     }
   }
 }
