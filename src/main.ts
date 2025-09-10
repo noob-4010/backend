@@ -1,10 +1,13 @@
 // src/main.ts
 import * as crypto from 'crypto';   // ✅ Import Node's crypto
-(global as any).crypto = crypto;    // ✅ Patch crypto globally
-
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { RequestMethod } from '@nestjs/common';
+
+// ✅ Only patch crypto if not already present (fix for Node 20+)
+if (!(global as any).crypto) {
+  (global as any).crypto = crypto;
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
