@@ -1,23 +1,26 @@
-# Step 1: Use Node LTS image
-FROM node:20-alpine
+# Stage 1: builder
+FROM node:18-slim AS builder
+WORKDIR /app
 
-# Step 2: Set working directory
-WORKDIR /usr/src/app
-
-# Step 3: Copy package.json & package-lock.json
 COPY package*.json ./
+RUN npm ci
 
-# Step 4: Install dependencies
-RUN npm install --production
-
-# Step 5: Copy source code
 COPY . .
-
-# Step 6: Build TypeScript
 RUN npm run build
 
-# Step 7: Expose port
+# Stage 2: runner
+FROM node:18-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy dist and polyfill
+COPY --from=builder /app/dist ./dist
+COPY ./polyfill.js ./polyfill.js
+
 EXPOSE 3000
 
-# Step 8: Start the app
-CMD ["node", "dist/main.js"]
+# Preload crypto polyfill before NestJS starts
+CMD ["node", "-r", "/app/polyfill.js", "dist/main.js"]
