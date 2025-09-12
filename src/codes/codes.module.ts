@@ -1,15 +1,14 @@
+// src/codes/codes.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CodesService } from './codes.service';
-import { CodesController } from './codes.controller';
 import { Code } from './code.entity';
+import { IcdCode } from './icd-code.entity';
 import { ConceptMap } from './concept-map.entity';
-import { IcdApiService } from './icd-api.service';
+import { CodesService } from './codes.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Code, ConceptMap])],
-  providers: [CodesService, IcdApiService],
-  controllers: [CodesController],
-  exports: [TypeOrmModule.forFeature([Code])], // ✅ export the repository for AppController
+  imports: [TypeOrmModule.forFeature([Code, IcdCode, ConceptMap])],
+  providers: [CodesService],
+  exports: [CodesService, TypeOrmModule], // ✅ Export repository for AppController
 })
 export class CodesModule {}

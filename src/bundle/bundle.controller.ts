@@ -1,49 +1,55 @@
-import { Controller, Post, Body, Inject } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Code } from '../codes/code.entity';
+import { Controller, Post, Body } from '@nestjs/common';
+import { TranslateService } from '../translate/translate.service';
+
+interface TranslationMapping {
+  code?: string;
+  term?: string;
+}
+
+interface Translation {
+  namasteCode: string;
+  namasteTerm: string;
+  mappings: {
+    icd11_tm2: TranslationMapping;
+    icd11_biomed: TranslationMapping;
+  };
+}
 
 @Controller('fhir')
 export class BundleController {
-  constructor(
-    private readonly http: HttpService,
-    @InjectRepository(Code)
-    private readonly codeRepo: Repository<Code>,
-  ) {}
+  constructor(private readonly translateService: TranslateService) {}
 
-  // Translate a single code
-  private async translateCode(code: string) {
-    const codeEntry = await this.codeRepo.findOne({ where: { code } });
+  @Post('bundle')
+  async uploadBundle(@Body() body: any) {
+    const entries: any[] = [];
 
-    if (!codeEntry) {
-      return {
-        source: 'db',
-        namaste: code,
-        tm2: null,
-        biomed: null,
-        icd11: 'UNKNOWN',
-      };
+    for (const entry of body.entry || []) {
+      const code = entry.resource?.code?.coding?.[0]?.code;
+      if (!code) continue;
+
+      const translation: Translation | null = await this.translateService.getTranslation(code);
+      if (!translation) continue;
+
+      const { icd11_tm2, icd11_biomed } = translation.mappings;
+
+      entries.push({
+        resource: {
+          resourceType: 'Condition',
+          code: {
+            coding: [
+              { system: 'NAMASTE', code: translation.namasteCode, display: translation.namasteTerm },
+              { system: 'ICD-11-TM2', code: icd11_tm2?.code || '', display: icd11_tm2?.term || '' },
+              { system: 'ICD-11-Biomed', code: icd11_biomed?.code || '', display: icd11_biomed?.term || '' },
+            ],
+          },
+        },
+      });
     }
 
     return {
-      source: 'db',
-      namaste: codeEntry.code,
-      tm2: codeEntry.tm2Code,
-      biomed: codeEntry.biomedCode,
-      icd11: codeEntry.biomedCode || 'UNKNOWN', // adjust if you have a separate ICD-11 mapping
+      resourceType: 'Bundle',
+      type: 'collection',
+      entry: entries,
     };
-  }
-
-  @Post('bundle')
-  async uploadBundle(@Body() body: { codes: string[] }) {
-    const results: Record<string, any> = {};
-
-    for (const code of body.codes) {
-      results[code] = await this.translateCode(code);
-    }
-
-    return results;
   }
 }

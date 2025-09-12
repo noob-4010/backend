@@ -1,158 +1,127 @@
-// src/codes/codes.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike } from 'typeorm';
 import { Code } from './code.entity';
+import { IcdCode } from './icd-code.entity';
 import { ConceptMap } from './concept-map.entity';
 import * as fs from 'fs';
-import * as path from 'path';
 import csvParser from 'csv-parser';
-import { CsvIngestDto } from './dto/csv-ingest.dto';
-import { IcdApiService } from './icd-api.service'; // optional for later real ICD API
+import axios from 'axios';
 
 @Injectable()
 export class CodesService {
   constructor(
     @InjectRepository(Code)
-    private codesRepo: Repository<Code>,
+    private readonly codeRepository: Repository<Code>,
+
+    @InjectRepository(IcdCode)
+    private readonly icdCodeRepository: Repository<IcdCode>,
+
     @InjectRepository(ConceptMap)
-    private conceptMapRepo: Repository<ConceptMap>,
-    private readonly icdApiService: IcdApiService, // for future ICD API
+    private readonly conceptMapRepository: Repository<ConceptMap>,
   ) {}
 
-  // Fetch all codes
-  findAll(): Promise<Code[]> {
-    return this.codesRepo.find();
+  async findAll(): Promise<Code[]> {
+    return this.codeRepository.find();
   }
 
-  // Create a single code
-  async create(codeData: CsvIngestDto): Promise<Code> {
-    const code = this.codesRepo.create(codeData);
-    return this.codesRepo.save(code);
-  }
-
-  // Ingest CSV file
-  async ingestCsv(filePath: string): Promise<{ message: string }> {
-    const fullPath = path.resolve(filePath);
-    if (!fs.existsSync(fullPath)) {
-      throw new Error(`CSV file not found: ${fullPath}`);
-    }
-
-    const results: CsvIngestDto[] = [];
-
-    await new Promise<void>((resolve, reject) => {
-      fs.createReadStream(fullPath)
-        .pipe(csvParser())
-        .on('data', (data: any) => {
-          results.push({
-            system: data.system,
-            code: data.code,
-            name: data.name,
-            description: data.description || '',
-            tm2Code: data.tm2Code || '',
-            biomedCode: data.biomedCode || '',
-          });
-        })
-        .on('end', () => resolve())
-        .on('error', (err) => reject(err));
-    });
-
-    for (const row of results) {
-      await this.create(row);
-    }
-
-    return { message: `CSV data ingested successfully — ${results.length} rows inserted` };
-  }
-
-  // Generate FHIR ValueSet
-  async getValueSet() {
-    const codes = await this.codesRepo.find();
+  async getValueSet(): Promise<any> {
+    const codes = await this.codeRepository.find();
     return {
       resourceType: 'ValueSet',
-      id: 'namaste-codes',
+      id: 'ayush-valueset',
+      status: 'active',
       compose: {
         include: [
           {
             system: 'NAMASTE',
-            concept: codes.map(c => ({ code: c.code, display: c.name })),
+            concept: codes.map(c => ({
+              code: c.code,
+              display: c.name,
+            })),
           },
         ],
       },
     };
   }
 
-  // Generate FHIR ConceptMap
-  async getConceptMap(targetSystem: string) {
-    const mapEntries = await this.conceptMapRepo.find({ where: { target_system: targetSystem } });
+  async getConceptMap(targetSystem: string): Promise<any> {
+    const maps = await this.conceptMapRepository.find({
+      where: { target_system: targetSystem },
+    });
+
     return {
       resourceType: 'ConceptMap',
+      id: `map-${targetSystem}`,
       group: [
         {
           source: 'NAMASTE',
           target: targetSystem,
-          element: mapEntries.map(entry => ({
-            code: entry.source_code,
-            target: [{ code: entry.target_code }],
+          element: maps.map(m => ({
+            code: m.source_code,
+            target: [{ code: m.target_code }],
           })),
         },
       ],
     };
   }
 
-  // Auto-complete NAMASTE codes
-  async autoComplete(query: string, limit = 10) {
-    const results = await this.codesRepo.find({
-      where: [
-        { code: ILike(`%${query}%`) },
-        { name: ILike(`%${query}%`) },
-      ],
-      take: limit,
+  async autoComplete(query: string, n: number): Promise<Code[]> {
+    return this.codeRepository.find({
+      where: { name: ILike(`%${query}%`) },
+      take: n,
     });
-    return results.map(r => ({ code: r.code, display: r.name }));
   }
 
-  // Sync ICD codes from icd11.csv (for testing, before real API)
-  async syncIcdCodes() {
-    const icdFile = path.resolve('src/seeds/icd11.csv');
-    if (!fs.existsSync(icdFile)) {
-      throw new Error('ICD-11 CSV file not found');
-    }
-
-    const rows: CsvIngestDto[] = [];
-
-    await new Promise<void>((resolve, reject) => {
-      fs.createReadStream(icdFile)
+  // ✅ Now returns an object with message property
+  async ingestCsv(filePath: string): Promise<{ message: string }> {
+    return new Promise((resolve, reject) => {
+      const rows: any[] = [];
+      fs.createReadStream(filePath)
         .pipe(csvParser())
-        .on('data', (data: any) => {
-          rows.push({
-            system: data.system,
-            code: data.code,
-            name: data.name,
-            description: data.description || '',
-            tm2Code: data.tm2Code || '',
-            biomedCode: data.biomedCode || '',
-          });
+        .on('data', data => rows.push(data))
+        .on('end', async () => {
+          for (const row of rows) {
+            await this.create(row);
+          }
+          resolve({ message: `✅ Ingested ${rows.length} codes from ${filePath}` });
         })
-        .on('end', () => resolve())
         .on('error', err => reject(err));
     });
+  }
 
-    for (const row of rows) {
-      // Populate ConceptMap for TM2
-      await this.conceptMapRepo.save({
-        source_code: row.code, // use ICD code as source for now
-        target_code: row.tm2Code,
-        target_system: 'ICD11-TM2',
-      });
+  async create(row: any): Promise<Code> {
+    const code = this.codeRepository.create({
+      system: row.system || 'NAMASTE',
+      code: row.code,
+      name: row.name,
+      description: row.description,
+    });
+    return this.codeRepository.save(code);
+  }
 
-      // Populate ConceptMap for Biomed
-      await this.conceptMapRepo.save({
-        source_code: row.code,
-        target_code: row.biomedCode,
-        target_system: 'ICD11-Biomed',
+  // ✅ Now returns an object with message property
+  async syncIcdCodes(): Promise<{ message: string }> {
+    try {
+      const response = await axios.get(
+        'https://id.who.int/icd/release/11/mms/foundation'
+      );
+
+      const icdData = response.data;
+      if (!icdData) throw new NotFoundException('No ICD data from WHO');
+
+      // Sample entry for testing
+      const sample = this.icdCodeRepository.create({
+        code: 'SAMPLE',
+        name: 'Sample ICD entry',
+        description: 'Synced from WHO API',
       });
+      await this.icdCodeRepository.save(sample);
+
+      return { message: '✅ Synced ICD Codes (sample entry stored)' };
+    } catch (err) {
+      console.error(err);
+      throw new Error('❌ Failed to sync ICD codes');
     }
-
-    return { message: 'ICD-11 codes synced successfully from CSV' };
   }
 }
