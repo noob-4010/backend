@@ -1,3 +1,4 @@
+// codes.service.ts
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike } from 'typeorm';
@@ -21,12 +22,21 @@ export class CodesService {
     private readonly conceptMapRepository: Repository<ConceptMap>,
   ) {}
 
+  // Return all codes
   async findAll(): Promise<Code[]> {
     return this.codeRepository.find();
   }
 
+  // ValueSet returns only NAMASTE codes (no duplicates)
   async getValueSet(): Promise<any> {
     const codes = await this.codeRepository.find();
+    const namasteCodes = codes
+      .filter(c => c.system === 'NAMASTE')
+      .filter(
+        (code, index, self) =>
+          index === self.findIndex(c => c.code === code.code),
+      );
+
     return {
       resourceType: 'ValueSet',
       id: 'ayush-valueset',
@@ -35,7 +45,7 @@ export class CodesService {
         include: [
           {
             system: 'NAMASTE',
-            concept: codes.map(c => ({
+            concept: namasteCodes.map(c => ({
               code: c.code,
               display: c.name,
             })),
@@ -45,10 +55,38 @@ export class CodesService {
     };
   }
 
+  // ConceptMap for a target system (TM2, Biomed, etc.)
   async getConceptMap(targetSystem: string): Promise<any> {
     const maps = await this.conceptMapRepository.find({
       where: { target_system: targetSystem },
     });
+
+    // Remove duplicate source-target pairs
+    const uniqueMaps = maps.filter(
+      (map, index, self) =>
+        index ===
+        self.findIndex(
+          m => m.source_code === map.source_code && m.target_code === map.target_code,
+        ),
+    );
+
+    // Fill display from Code repository
+    const elements = await Promise.all(
+      uniqueMaps.map(async m => {
+        const targetCode = await this.codeRepository.findOne({
+          where: { code: m.target_code },
+        });
+        return {
+          code: m.source_code,
+          target: [
+            {
+              code: m.target_code,
+              display: targetCode ? targetCode.name : '',
+            },
+          ],
+        };
+      }),
+    );
 
     return {
       resourceType: 'ConceptMap',
@@ -57,15 +95,13 @@ export class CodesService {
         {
           source: 'NAMASTE',
           target: targetSystem,
-          element: maps.map(m => ({
-            code: m.source_code,
-            target: [{ code: m.target_code }],
-          })),
+          element: elements,
         },
       ],
     };
   }
 
+  // Autocomplete by code name
   async autoComplete(query: string, n: number): Promise<Code[]> {
     return this.codeRepository.find({
       where: { name: ILike(`%${query}%`) },
@@ -73,7 +109,7 @@ export class CodesService {
     });
   }
 
-  // ✅ Now returns an object with message property
+  // Ingest CSV file
   async ingestCsv(filePath: string): Promise<{ message: string }> {
     return new Promise((resolve, reject) => {
       const rows: any[] = [];
@@ -90,6 +126,7 @@ export class CodesService {
     });
   }
 
+  // Create a code entry
   async create(row: any): Promise<Code> {
     const code = this.codeRepository.create({
       system: row.system || 'NAMASTE',
@@ -100,11 +137,11 @@ export class CodesService {
     return this.codeRepository.save(code);
   }
 
-  // ✅ Now returns an object with message property
+  // Sync ICD codes from WHO (sample)
   async syncIcdCodes(): Promise<{ message: string }> {
     try {
       const response = await axios.get(
-        'https://id.who.int/icd/release/11/mms/foundation'
+        'https://id.who.int/icd/release/11/mms/foundation',
       );
 
       const icdData = response.data;
@@ -123,5 +160,74 @@ export class CodesService {
       console.error(err);
       throw new Error('❌ Failed to sync ICD codes');
     }
+  }
+
+  // 🔥 Translate NAMASTE → TM2 → Biomed → ICD11
+  async translateCode(code: string) {
+    // 1. Get NAMASTE code
+    const namaste = await this.codeRepository.findOne({
+      where: { system: 'NAMASTE', code },
+    });
+
+    if (!namaste) {
+      throw new NotFoundException(`Code ${code} not found in NAMASTE`);
+    }
+
+    // 2. Get mappings (TM2 + Biomed)
+    const mappings = await this.conceptMapRepository.find({
+      where: { source_code: code },
+    });
+
+    const tm2 = mappings.find(m => m.target_system === 'TM2');
+    const biomed = mappings.find(m => m.target_system === 'Biomed');
+
+    // 3. Get ICD11 if Biomed exists
+    let icd11: IcdCode | null = null;
+    if (biomed) {
+      icd11 = await this.icdCodeRepository.findOne({
+        where: { code: biomed.target_code },
+      });
+    }
+
+    // 4. Resolve names safely
+    const tm2Display =
+      tm2 &&
+      (await this.codeRepository.findOne({ where: { code: tm2.target_code } }))
+        ?.name;
+
+    const biomedDisplay =
+      biomed &&
+      (await this.codeRepository.findOne({ where: { code: biomed.target_code } }))
+        ?.name;
+
+    // 5. Build structured response
+    return {
+      namaste: {
+        code: namaste.code,
+        display: namaste.name,
+        system: namaste.system,
+      },
+      tm2: tm2
+        ? {
+            code: tm2.target_code,
+            display: tm2Display || tm2.target_code,
+            system: 'TM2',
+          }
+        : null,
+      biomed: biomed
+        ? {
+            code: biomed.target_code,
+            display: biomedDisplay || biomed.target_code,
+            system: 'Biomed',
+          }
+        : null,
+      icd11: icd11
+        ? {
+            code: icd11.code,
+            display: icd11.name,
+            system: 'ICD11',
+          }
+        : null,
+    };
   }
 }
