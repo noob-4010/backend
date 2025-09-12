@@ -1,19 +1,22 @@
-// src/app.module.ts
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { CacheModule } from '@nestjs/cache-manager';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { HttpModule } from '@nestjs/axios';
+
 import { CodesModule } from './codes/codes.module';
-import { Code } from './codes/code.entity';
-import { IcdCode } from './codes/icd-code.entity'; // ✅ new entity
-import { ConceptMap } from './codes/concept-map.entity'; // ✅ new entity
 import { SeedModule } from './seeds/seed.module';
-import { AppController } from './app.controller';
 import { RedisModule } from './redis/redis.module';
 import { TranslateModule } from './translate/translate.module';
+import { BundleModule } from './bundle/bundle.module';
+
+import { AppController } from './app.controller';
+import { Code } from './codes/code.entity';
+import { IcdCode } from './codes/icd-code.entity';
+import { ConceptMap } from './codes/concept-map.entity';
 
 @Module({
   imports: [
-    TranslateModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath:
@@ -21,6 +24,7 @@ import { TranslateModule } from './translate/translate.module';
           ? '.env.production'
           : '.env.local',
     }),
+
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -29,17 +33,25 @@ import { TranslateModule } from './translate/translate.module';
         return {
           type: 'postgres',
           url: dbUrl,
-          entities: [Code, IcdCode, ConceptMap], // ✅ register all entities
+          entities: [Code, IcdCode, ConceptMap],
           autoLoadEntities: true,
-          synchronize: true, // ⚠️ use migrations in prod
+          synchronize: true,
           ssl: dbUrl?.includes('render') ? { rejectUnauthorized: false } : false,
         };
       },
     }),
+
     CodesModule,
     SeedModule,
     RedisModule,
-    TypeOrmModule.forFeature([Code, IcdCode, ConceptMap]), // ✅ include them here too
+    TranslateModule,
+    BundleModule,
+    HttpModule,
+
+    CacheModule.register({
+      ttl: 30,
+      max: 100,
+    }),
   ],
   controllers: [AppController],
   providers: [],

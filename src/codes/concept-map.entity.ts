@@ -1,16 +1,16 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@Entity({ name: 'concept_map' })
+@Entity()
 export class ConceptMap {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column()
-  source_code: string; // NAMASTE code
+  source_code: string; // e.g., NAMASTE code
 
   @Column()
-  target_code: string; // ICD-11 TM2 / Biomed code
+  target_code: string; // e.g., TM2 or ICD11 Biomed code
 
   @Column()
-  target_system: string; // e.g., "ICD11-TM2" or "ICD11-Biomed"
+  target_system: string; // "TM2" | "ICD11-Biomed" | "ICD11-TM2"
 }

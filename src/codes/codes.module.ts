@@ -10,5 +10,6 @@ import { IcdApiService } from './icd-api.service';
   imports: [TypeOrmModule.forFeature([Code, ConceptMap])],
   providers: [CodesService, IcdApiService],
   controllers: [CodesController],
+  exports: [TypeOrmModule.forFeature([Code])], // ✅ export the repository for AppController
 })
 export class CodesModule {}

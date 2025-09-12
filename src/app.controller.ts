@@ -1,3 +1,4 @@
+// src/app.controller.ts
 import { Controller, Get, Inject } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -26,14 +27,14 @@ export class AppController {
     if (cached) return { source: 'cache', data: cached };
 
     const codes = await this.codeRepo.find();
-    await this.cacheManager.set('codes', codes, 30_000); // 30 seconds
+    await this.cacheManager.set('codes', codes, 30); // TTL 30 seconds
     return { source: 'db', data: codes };
   }
 
   // Cache test route (access via /api/cache-test)
   @Get('cache-test')
   async getCacheTest() {
-    await this.cacheManager.set('hello', 'world', 10_000); // 10 seconds
+    await this.cacheManager.set('hello', 'world', 10); // TTL 10 seconds
     const value = await this.cacheManager.get('hello');
     return { cachedValue: value };
   }
